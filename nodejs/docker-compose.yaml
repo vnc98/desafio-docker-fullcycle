@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    volumes:
+        - "./.docker/init.sql:/docker-entrypoint-initdb.d/init.sql"
+    container_name: db-mysql
+    restart: always
+    tty: true
+    environment:
+      - MYSQL_DATABASE=nodedb
+      - MYSQL_ROOT_PASSWORD=root
+    networks: 
+      - node-network
+  
+  app:
+    build: 
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app
+    networks:
+      - node-network
+    tty: true
+    depends_on:
+      - db
+    expose:
+      - "3000"
+
+  reverse-proxy:
+    build: 
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: reverse-proxy
+    networks:
+      - node-network
+    tty: true
+    depends_on:
+      - app
+    ports:
+      - "8080:80"
+
+networks:
+  node-network:
+    driver: bridge
